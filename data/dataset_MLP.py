@@ -32,7 +32,6 @@ class dataset_MLP():
         ans = []
         for i in range(len(res)):
             indx.append(i + 1)
-
             ans.append(int(res[i]))
         DataSet = list(zip(indx,ans))
         df = pd.DataFrame(data = DataSet ,columns=['ImageId','Label'])

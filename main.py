@@ -1,14 +1,15 @@
 from data import dataset_RF
 from data import dataset_MLP
+from data import dataset_LeNet
+from torch.utils.data import DataLoader
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.externals import joblib
 import xgboost as xgb
 from model import MLP
+from model import LeNet5
 import torch as t
-from torchnet import meter
 import time
-import argparse
 
 #随机森林实现
 def rf(root , path_train , path_test):
@@ -72,8 +73,8 @@ def mpl(root , path_train , path_test):
     data_set_train = dataset_MLP(root + path_train , train = True)
     data_set_test = dataset_MLP(root + path_test , train = False)
 
-    trainloader = t.utils.data.DataLoader(data_set_train,batch_size=1000,shuffle=True)
-    testloader = t.utils.data.DataLoader(data_set_test,batch_size=1000)
+    trainloader = DataLoader(data_set_train,batch_size=1000,shuffle=True)
+    testloader = DataLoader(data_set_test,batch_size=1000)
 
     model = MLP()
 
@@ -104,9 +105,41 @@ def mpl(root , path_train , path_test):
     data_set_test.save_res(ans , "./images/res_MLP.csv")
     
 
+#LeNet实现
+def lenet(root , path_train , path_test):
+    dataset_train = dataset_LeNet(root + path_train , train = True)
+    dataset_test = dataset_LeNet(root + path_test , train = False)
+
+    trainloader = DataLoader(dataset_train , batch_size=250 , shuffle=True)
+    testloader = DataLoader(dataset_test , batch_size=1000)
+
+    model = LeNet5()
+
+    criterion = t.nn.CrossEntropyLoss()
+    lr = 0.01
+    optimizer = t.optim.SGD(model.parameters() , lr , momentum=0.4)
+
+    for epoch in range(40):
+        for _ , (data , label) in enumerate(trainloader):
+            model.train()
+            optimizer.zero_grad()
+            score = model(data)
+            loss = criterion(score , label)
+            loss.backward()
+            optimizer.step()
+        print("Epoch:%d loss:%f" %(epoch,loss.mean()))
+
     
+    res = []
+    for _ , (data) in enumerate(testloader):
+        model.eval()
+        predict = model(data)
+        predict = predict.detach().numpy().tolist()
+        res += predict
+    res = np.array(res)
 
-
+    ans = np.argmax(res , axis = 1)
+    dataset_test.save_res(ans , "./images/res_MLP.csv")
 
 
 
@@ -117,6 +150,6 @@ if __name__ == "__main__":
     path_test = "test.csv"
     #rf(root , path_train , path_test)
     #xgb_model(root , path_train , path_test)
-    mpl(root , path_train , path_test)
+    lenet(root , path_train , path_test)
  
     
